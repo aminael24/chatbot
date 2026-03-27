@@ -1,0 +1,190 @@
+version: '3.8'
+
+services:
+
+  # ── Base de données MySQL ──────────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: chatbot_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_secret123
+      MYSQL_DATABASE: chatbot
+      MYSQL_USER: chatbot
+      MYSQL_PASSWORD: chatbot123
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - chatbot_network
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --max-allowed-packet=67108864
+      --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-u", "root", "--password=root_secret123"]
+      interval: 15s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+
+  # ── Moteur LLM (Ollama) ──────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: chatbot_ollama
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - chatbot_network
+    # Pour GPU NVIDIA, décommentez :
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # ── Téléchargement du modèle LLM ────────────────────────────────────
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: chatbot_ollama_pull
+    depends_on:
+      - ollama
+    networks:
+      - chatbot_network
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    entrypoint: >
+      /bin/sh -c "
+        echo 'Attente Ollama...';
+        sleep 8;
+        ollama pull tinyllama;
+        echo '✅ Modèle tinyllama téléchargé'
+      "
+    restart: "no"
+
+  # ── Application Flask ────────────────────────────────────────────────
+  app:
+    build: ./app
+    container_name: chatbot_app
+    restart: unless-stopped
+    environment:
+      MYSQL_HOST: db
+      MYSQL_PORT: "3306"
+      MYSQL_USER: chatbot
+      MYSQL_PASSWORD: chatbot123
+      MYSQL_DB: chatbot
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: tinyllama
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    networks:
+      - chatbot_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # ── Reverse Proxy Nginx ──────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: chatbot_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    networks:
+      - chatbot_network
+
+  # ── Prometheus ───────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: chatbot_prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    networks:
+      - chatbot_network
+
+  # ── Grafana ──────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: chatbot_grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - chatbot_network
+
+  # ── Node Exporter (métriques système) ────────────────────────────────
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: chatbot_node_exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - chatbot_network
+
+  # ── MySQL Exporter (métriques MySQL pour Prometheus) ─────────────────
+  mysql-exporter:
+    image: prom/mysqld-exporter:latest
+    container_name: chatbot_mysql_exporter
+    restart: unless-stopped
+    ports:
+      - "9104:9104"
+    environment:
+      DATA_SOURCE_NAME: "chatbot:chatbot123@(db:3306)/chatbot"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - chatbot_network
+
+networks:
+  chatbot_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  ollama_data:
+  prometheus_data:
+  grafana_data:

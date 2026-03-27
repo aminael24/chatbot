@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+
+  # Métriques de l'application Flask
+  - job_name: 'chatbot-app'
+    static_configs:
+      - targets: ['app:5000']
+    metrics_path: '/metrics'
+
+  # Métriques système (CPU, RAM, disque, réseau)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # Métriques MySQL
+  - job_name: 'mysql'
+    static_configs:
+      - targets: ['mysql-exporter:9104']
+
+  # Métriques Prometheus lui-même
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
