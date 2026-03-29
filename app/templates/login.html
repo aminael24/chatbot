@@ -1,0 +1,1184 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>CloudBot — Connexion</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,700&family=DM+Sans:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #1a1a2e;
+        --ink2: #2d2d4e;
+        --cream: #f5f0e8;
+        --gold: #c9a84c;
+        --gold2: #e8c97a;
+        --rust: #a0522d;
+        --mist: #8899aa;
+        --serif: "Playfair Display", Georgia, serif;
+        --sans: "DM Sans", sans-serif;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      /* ✅ FIX SCROLL : html/body ne bloquent plus le défilement */
+      html {
+        cursor: none;
+      }
+      body {
+        min-height: 100vh;
+        font-family: var(--sans);
+        overflow-x: hidden;
+        overflow-y: auto; /* scroll activé */
+        cursor: none;
+      }
+
+      /* ── CUSTOM CURSOR ── */
+      .cursor {
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        background: var(--gold);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 9999;
+        transform: translate(-50%, -50%);
+        transition:
+          width 0.3s,
+          height 0.3s,
+          background 0.3s;
+      }
+      .cursor-ring {
+        position: fixed;
+        width: 36px;
+        height: 36px;
+        border: 1px solid rgba(201, 168, 76, 0.5);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 9998;
+        transform: translate(-50%, -50%);
+        transition:
+          width 0.3s,
+          height 0.3s;
+      }
+
+      /* ── VIDEO BACKGROUND ── */
+      .video-bg {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        overflow: hidden;
+      }
+      .video-bg video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0;
+        transition: opacity 1.2s ease;
+      }
+      .video-bg video.loaded {
+        opacity: 1;
+      }
+      .video-bg::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          135deg,
+          rgba(26, 26, 46, 0.82) 0%,
+          rgba(26, 26, 46, 0.55) 50%,
+          rgba(26, 26, 46, 0.78) 100%
+        );
+      }
+      .video-bg::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+        pointer-events: none;
+        opacity: 0.5;
+      }
+
+      /* ── LAYOUT ── */
+      .page {
+        position: relative;
+        z-index: 10;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 100px 16px 80px; /* top padding pour la navbar fixe */
+      }
+
+      /* ── NAV LOGO BAR ── */
+      .top-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 50;
+        padding: 22px 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        opacity: 0;
+        animation: fadeDown 0.6s 0.2s forwards;
+        background: rgba(26, 26, 46, 0.4);
+        backdrop-filter: blur(12px);
+      }
+      .nav-logo {
+        font-family: var(--serif);
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--gold);
+        text-decoration: none;
+      }
+      .nav-logo span {
+        color: var(--cream);
+        font-style: italic;
+      }
+      .back-link {
+        font-size: 0.75rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(245, 240, 232, 0.5);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: color 0.2s;
+      }
+      .back-link:hover {
+        color: var(--gold);
+      }
+      .back-link svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* ── CARD ── */
+      .login-card {
+        width: 100%;
+        max-width: 420px;
+        background: rgba(26, 26, 46, 0.72);
+        border: 1px solid rgba(201, 168, 76, 0.18);
+        border-radius: 8px;
+        padding: 48px 44px 44px;
+        backdrop-filter: blur(28px);
+        -webkit-backdrop-filter: blur(28px);
+        box-shadow:
+          0 32px 80px rgba(0, 0, 0, 0.45),
+          0 0 0 1px rgba(201, 168, 76, 0.06) inset;
+        opacity: 0;
+        transform: translateY(32px);
+        animation: fadeUp 0.8s 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        position: relative;
+        overflow: hidden;
+      }
+      .login-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 10%;
+        right: 10%;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--gold),
+          transparent
+        );
+      }
+      .login-card::after {
+        content: "";
+        position: absolute;
+        top: -60px;
+        right: -60px;
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(201, 168, 76, 0.06),
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+
+      /* ── CARD HEADER ── */
+      .card-kicker {
+        font-size: 0.65rem;
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        color: var(--gold);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .card-kicker::before {
+        content: "";
+        width: 28px;
+        height: 1px;
+        background: var(--gold);
+        flex-shrink: 0;
+      }
+      .card-title {
+        font-family: var(--serif);
+        font-size: 2rem;
+        font-weight: 400;
+        line-height: 1.15;
+        color: var(--cream);
+        margin-bottom: 6px;
+      }
+      .card-title em {
+        font-style: italic;
+        color: var(--gold);
+      }
+      .card-sub {
+        font-size: 0.83rem;
+        color: var(--mist);
+        margin-bottom: 36px;
+        line-height: 1.6;
+      }
+
+      /* ── TABS ── */
+      .tabs {
+        display: flex;
+        margin-bottom: 30px;
+        border-bottom: 1px solid rgba(201, 168, 76, 0.15);
+      }
+      .tab-btn {
+        flex: 1;
+        background: none;
+        border: none;
+        padding: 10px 0 12px;
+        font-family: var(--sans);
+        font-size: 0.78rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--mist);
+        cursor: pointer;
+        position: relative;
+        transition: color 0.25s;
+      }
+      .tab-btn::after {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 15%;
+        right: 15%;
+        height: 2px;
+        background: var(--gold);
+        transform: scaleX(0);
+        transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .tab-btn.active {
+        color: var(--cream);
+      }
+      .tab-btn.active::after {
+        transform: scaleX(1);
+      }
+
+      /* ── FORMS ── */
+      .form-panel {
+        display: none;
+      }
+      .form-panel.active {
+        display: block;
+        animation: fadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      }
+
+      .field {
+        margin-bottom: 20px;
+        position: relative;
+      }
+      .field label {
+        display: block;
+        font-size: 0.7rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--mist);
+        margin-bottom: 8px;
+        transition: color 0.2s;
+      }
+      .field:focus-within label {
+        color: var(--gold);
+      }
+      .field input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.045);
+        border: 1px solid rgba(201, 168, 76, 0.18);
+        border-radius: 3px;
+        padding: 13px 16px;
+        font-family: var(--sans);
+        font-size: 0.9rem;
+        color: var(--cream);
+        outline: none;
+        transition:
+          border-color 0.25s,
+          background 0.25s,
+          box-shadow 0.25s;
+      }
+      .field input::placeholder {
+        color: rgba(136, 153, 170, 0.45);
+        font-size: 0.85rem;
+      }
+      .field input:focus {
+        border-color: rgba(201, 168, 76, 0.55);
+        background: rgba(255, 255, 255, 0.07);
+        box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.08);
+      }
+      .field-pw {
+        position: relative;
+      }
+      .field-pw input {
+        padding-right: 46px;
+      }
+      .pw-toggle {
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--mist);
+        padding: 4px;
+        display: flex;
+        align-items: center;
+        transition: color 0.2s;
+      }
+      .pw-toggle:hover {
+        color: var(--gold);
+      }
+      .pw-toggle svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .form-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 28px;
+        margin-top: -4px;
+      }
+      .check-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 0.78rem;
+        color: var(--mist);
+        user-select: none;
+        transition: color 0.2s;
+      }
+      .check-label:hover {
+        color: var(--cream);
+      }
+      .check-label input[type="checkbox"] {
+        appearance: none;
+        width: 15px;
+        height: 15px;
+        border: 1px solid rgba(201, 168, 76, 0.35);
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.04);
+        cursor: pointer;
+        position: relative;
+        flex-shrink: 0;
+        transition:
+          border-color 0.2s,
+          background 0.2s;
+      }
+      .check-label input[type="checkbox"]:checked {
+        background: var(--gold);
+        border-color: var(--gold);
+      }
+      .check-label input[type="checkbox"]:checked::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 4px;
+        width: 5px;
+        height: 8px;
+        border: 2px solid var(--ink);
+        border-top: none;
+        border-left: none;
+        transform: rotate(45deg);
+      }
+      .forgot-link {
+        font-size: 0.75rem;
+        color: var(--mist);
+        text-decoration: none;
+        letter-spacing: 0.05em;
+        transition: color 0.2s;
+      }
+      .forgot-link:hover {
+        color: var(--gold);
+      }
+
+      .btn-submit {
+        width: 100%;
+        background: var(--gold);
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 0.82rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        padding: 15px;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s,
+          background 0.2s;
+        position: relative;
+        overflow: hidden;
+      }
+      .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 36px rgba(201, 168, 76, 0.38);
+        background: var(--gold2);
+      }
+      .btn-submit:active {
+        transform: translateY(0);
+      }
+      .btn-submit .spinner {
+        display: none;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(26, 26, 46, 0.3);
+        border-top-color: var(--ink);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      .btn-submit.loading .spinner {
+        display: block;
+      }
+      .btn-submit.loading .btn-text {
+        opacity: 0.7;
+      }
+
+      /* message d'erreur */
+      .form-error {
+        margin-top: 14px;
+        padding: 10px 14px;
+        background: rgba(239, 68, 68, 0.12);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 3px;
+        font-size: 0.8rem;
+        color: #fca5a5;
+        text-align: center;
+        animation: fadeUp 0.3s ease;
+      }
+
+      .divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 24px 0;
+        color: rgba(136, 153, 170, 0.4);
+        font-size: 0.72rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .divider::before,
+      .divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: rgba(201, 168, 76, 0.1);
+      }
+
+      .social-row {
+        display: flex;
+        gap: 10px;
+      }
+      .btn-social {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(201, 168, 76, 0.12);
+        border-radius: 3px;
+        padding: 11px;
+        color: var(--mist);
+        font-size: 0.75rem;
+        font-family: var(--sans);
+        letter-spacing: 0.06em;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s;
+      }
+      .btn-social:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(201, 168, 76, 0.3);
+        color: var(--cream);
+      }
+      .btn-social svg {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+      }
+
+      .name-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      /* ── FOOTER ── */
+      .page-footer {
+        position: relative;
+        z-index: 10;
+        text-align: center;
+        padding: 24px 16px;
+        font-size: 0.72rem;
+        color: rgba(245, 240, 232, 0.35);
+        letter-spacing: 0.05em;
+      }
+
+      /* ── FLOATING ORBS ── */
+      .orb {
+        position: fixed;
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 1;
+      }
+      .orb-a {
+        width: 380px;
+        height: 380px;
+        background: radial-gradient(
+          circle,
+          rgba(201, 168, 76, 0.05),
+          transparent 70%
+        );
+        top: -80px;
+        right: -80px;
+        animation: floatOrb 10s ease-in-out infinite;
+      }
+      .orb-b {
+        width: 260px;
+        height: 260px;
+        background: radial-gradient(
+          circle,
+          rgba(160, 82, 45, 0.05),
+          transparent 70%
+        );
+        bottom: -50px;
+        left: -50px;
+        animation: floatOrb 14s ease-in-out infinite reverse;
+      }
+
+      /* ── ANIMATIONS ── */
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(28px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes fadeDown {
+        from {
+          opacity: 0;
+          transform: translateY(-16px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes floatOrb {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-24px);
+        }
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        20% {
+          transform: translateX(-8px);
+        }
+        40% {
+          transform: translateX(8px);
+        }
+        60% {
+          transform: translateX(-5px);
+        }
+        80% {
+          transform: translateX(5px);
+        }
+      }
+      .shake {
+        animation: shake 0.4s ease;
+      }
+
+      @media (max-width: 500px) {
+        .login-card {
+          padding: 36px 24px 32px;
+        }
+        .top-bar {
+          padding: 18px 20px;
+        }
+        .name-row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="cursor" id="cursor"></div>
+    <div class="cursor-ring" id="cring"></div>
+    <div class="orb orb-a"></div>
+    <div class="orb orb-b"></div>
+
+    <!-- Vidéo background -->
+    <div class="video-bg">
+      <video
+        id="bgVideo"
+        autoplay
+        muted
+        loop
+        playsinline
+        src="https://videos.pexels.com/video-files/8128311/8128311-uhd_2560_1440_25fps.mp4"
+      ></video>
+    </div>
+
+    <!-- Navbar -->
+    <div class="top-bar">
+      <a href="/" class="nav-logo">Cloud<span>Bot</span></a>
+      <a href="/" class="back-link">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+        Retour à l'accueil
+      </a>
+    </div>
+
+    <!-- Contenu principal -->
+    <div class="page">
+      <div class="login-card" id="loginCard">
+        <div class="card-kicker">Accès sécurisé</div>
+        <h1 class="card-title">Bienvenue sur<br /><em>CloudBot</em></h1>
+        <p class="card-sub">
+          Connectez-vous pour accéder à votre assistant IA cloud.
+        </p>
+
+        <!-- Onglets -->
+        <div class="tabs">
+          <button
+            class="tab-btn active"
+            data-tab="login"
+            onclick="switchTab('login')"
+          >
+            Connexion
+          </button>
+          <button
+            class="tab-btn"
+            data-tab="register"
+            onclick="switchTab('register')"
+          >
+            Inscription
+          </button>
+        </div>
+
+        <!-- ── FORMULAIRE CONNEXION ── -->
+        <div class="form-panel active" id="panel-login">
+          <div class="field">
+            <label>Adresse e-mail</label>
+            <input
+              type="email"
+              id="login-email"
+              placeholder="vous@exemple.com"
+              autocomplete="email"
+            />
+          </div>
+          <div class="field field-pw">
+            <label>Mot de passe</label>
+            <input
+              type="password"
+              id="login-pw"
+              placeholder="••••••••"
+              autocomplete="current-password"
+            />
+            <button
+              class="pw-toggle"
+              onclick="togglePw('login-pw', this)"
+              tabindex="-1"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </button>
+          </div>
+          <div class="form-row">
+            <label class="check-label">
+              <input type="checkbox" id="remember" />
+              Se souvenir de moi
+            </label>
+            <a href="#" class="forgot-link">Mot de passe oublié ?</a>
+          </div>
+          <button class="btn-submit" id="btn-login" onclick="handleLogin()">
+            <span class="btn-text">Se connecter</span>
+            <div class="spinner"></div>
+          </button>
+          <div id="error-login"></div>
+
+          <div class="divider">ou continuer avec</div>
+          <div class="social-row">
+            <button class="btn-social">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  fill="#4285F4"
+                />
+                <path
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  fill="#34A853"
+                />
+                <path
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  fill="#FBBC05"
+                />
+                <path
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  fill="#EA4335"
+                />
+              </svg>
+              Google
+            </button>
+            <button class="btn-social">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"
+                />
+              </svg>
+              GitHub
+            </button>
+          </div>
+        </div>
+
+        <!-- ── FORMULAIRE INSCRIPTION ── -->
+        <div class="form-panel" id="panel-register">
+          <div class="name-row">
+            <div class="field">
+              <label>Prénom</label>
+              <input
+                type="text"
+                id="reg-prenom"
+                placeholder="Salma"
+                autocomplete="given-name"
+              />
+            </div>
+            <div class="field">
+              <label>Nom</label>
+              <input
+                type="text"
+                id="reg-nom"
+                placeholder="M."
+                autocomplete="family-name"
+              />
+            </div>
+          </div>
+          <div class="field">
+            <label>Adresse e-mail</label>
+            <input
+              type="email"
+              id="reg-email"
+              placeholder="vous@exemple.com"
+              autocomplete="email"
+            />
+          </div>
+          <div class="field field-pw">
+            <label>Mot de passe</label>
+            <input
+              type="password"
+              id="reg-pw"
+              placeholder="8 caractères minimum"
+              autocomplete="new-password"
+            />
+            <button
+              class="pw-toggle"
+              onclick="togglePw('reg-pw', this)"
+              tabindex="-1"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </button>
+          </div>
+          <!-- Barre de force -->
+          <div style="margin-top: -12px; margin-bottom: 18px">
+            <div
+              style="
+                height: 3px;
+                background: rgba(255, 255, 255, 0.06);
+                border-radius: 2px;
+                overflow: hidden;
+              "
+            >
+              <div
+                id="strength-bar"
+                style="
+                  height: 100%;
+                  width: 0;
+                  transition:
+                    width 0.4s,
+                    background 0.4s;
+                  border-radius: 2px;
+                "
+              ></div>
+            </div>
+            <div
+              id="strength-label"
+              style="
+                font-size: 0.66rem;
+                color: var(--mist);
+                margin-top: 5px;
+                letter-spacing: 0.08em;
+              "
+            ></div>
+          </div>
+          <div class="field field-pw">
+            <label>Confirmer le mot de passe</label>
+            <input
+              type="password"
+              id="reg-pw2"
+              placeholder="••••••••"
+              autocomplete="new-password"
+            />
+            <button
+              class="pw-toggle"
+              onclick="togglePw('reg-pw2', this)"
+              tabindex="-1"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </button>
+          </div>
+          <label
+            class="check-label"
+            style="margin-bottom: 24px; font-size: 0.77rem"
+          >
+            <input type="checkbox" id="terms" />
+            J'accepte les
+            <a href="#" style="color: var(--gold); text-decoration: none"
+              >conditions d'utilisation</a
+            >
+          </label>
+          <button
+            class="btn-submit"
+            id="btn-register"
+            onclick="handleRegister()"
+          >
+            <span class="btn-text">Créer mon compte</span>
+            <div class="spinner"></div>
+          </button>
+          <div id="error-register"></div>
+        </div>
+      </div>
+      <!-- /login-card -->
+    </div>
+    <!-- /page -->
+
+    <footer class="page-footer">
+      © 2026 CloudBot · GINF2 · ENSA Tanger · Université Abdelmalek Essaâdi
+    </footer>
+
+    <script>
+      // ── CURSOR ──
+      const cur = document.getElementById("cursor");
+      const cring = document.getElementById("cring");
+      let mx = 0,
+        my = 0,
+        rx = 0,
+        ry = 0;
+      document.addEventListener("mousemove", (e) => {
+        mx = e.clientX;
+        my = e.clientY;
+        cur.style.left = mx + "px";
+        cur.style.top = my + "px";
+      });
+      (function animCring() {
+        rx += (mx - rx) * 0.12;
+        ry += (my - ry) * 0.12;
+        cring.style.left = rx + "px";
+        cring.style.top = ry + "px";
+        requestAnimationFrame(animCring);
+      })();
+      document.querySelectorAll("a, button, input, label").forEach((el) => {
+        el.addEventListener("mouseenter", () => {
+          cur.style.width = "18px";
+          cur.style.height = "18px";
+          cur.style.background = "var(--gold2)";
+          cring.style.width = "50px";
+          cring.style.height = "50px";
+        });
+        el.addEventListener("mouseleave", () => {
+          cur.style.width = "10px";
+          cur.style.height = "10px";
+          cur.style.background = "var(--gold)";
+          cring.style.width = "36px";
+          cring.style.height = "36px";
+        });
+      });
+
+      // ── VIDEO ──
+      const vid = document.getElementById("bgVideo");
+      vid.addEventListener("canplay", () => vid.classList.add("loaded"));
+      if (vid.readyState >= 3) vid.classList.add("loaded");
+
+      // ── TABS ──
+      function switchTab(tab) {
+        document
+          .querySelectorAll(".tab-btn")
+          .forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+        document
+          .querySelectorAll(".form-panel")
+          .forEach((p) => p.classList.remove("active"));
+        document.getElementById("panel-" + tab).classList.add("active");
+        showError("", tab === "login" ? "error-login" : "error-register");
+      }
+
+      // ── PASSWORD TOGGLE ──
+      function togglePw(id, btn) {
+        const input = document.getElementById(id);
+        const isText = input.type === "text";
+        input.type = isText ? "password" : "text";
+        btn.innerHTML = isText
+          ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`
+          : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+      }
+
+      // ── PASSWORD STRENGTH ──
+      document.getElementById("reg-pw").addEventListener("input", function () {
+        const v = this.value;
+        let score = 0;
+        if (v.length >= 8) score++;
+        if (/[A-Z]/.test(v)) score++;
+        if (/[0-9]/.test(v)) score++;
+        if (/[^A-Za-z0-9]/.test(v)) score++;
+        const labels = ["", "Faible", "Moyen", "Bon", "Excellent"];
+        const colors = ["", "#ef4444", "#f97316", "#c9a84c", "#22c55e"];
+        const widths = ["0%", "25%", "50%", "75%", "100%"];
+        document.getElementById("strength-bar").style.width = widths[score];
+        document.getElementById("strength-bar").style.background =
+          colors[score];
+        document.getElementById("strength-label").textContent = v.length
+          ? labels[score]
+          : "";
+      });
+
+      // ── AFFICHER / CACHER ERREUR ──
+      function showError(msg, targetId) {
+        const el = document.getElementById(targetId);
+        if (!el) return;
+        if (!msg) {
+          el.innerHTML = "";
+          return;
+        }
+        el.innerHTML = `<div class="form-error">${msg}</div>`;
+        // faire trembler la carte
+        const card = document.getElementById("loginCard");
+        card.classList.add("shake");
+        setTimeout(() => card.classList.remove("shake"), 450);
+      }
+
+      // ── ✅ LOGIN HANDLER — vrai appel Flask ──
+      async function handleLogin() {
+        showError("", "error-login");
+        const email = document.getElementById("login-email").value.trim();
+        const pw = document.getElementById("login-pw").value;
+        const remember = document.getElementById("remember").checked;
+        const btn = document.getElementById("btn-login");
+
+        if (!email || !pw) {
+          showError("Veuillez remplir tous les champs", "error-login");
+          return;
+        }
+
+        btn.classList.add("loading");
+        btn.disabled = true;
+
+        try {
+          // fetch envoie la requête POST à Flask
+          // credentials:'same-origin' → le cookie de session est envoyé/reçu automatiquement
+          const res = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify({ email, password: pw, remember }),
+          });
+
+          const data = await res.json();
+
+          if (res.ok) {
+            // ✅ Flask a créé la session → redirection vers /chat
+            btn.querySelector(".btn-text").textContent =
+              `Bienvenue ${data.username} ✓`;
+            setTimeout(() => {
+              window.location.href = "/chat";
+            }, 600);
+          } else {
+            // ❌ 401 mauvais mdp, 400 champ manquant
+            showError(data.error || "Erreur de connexion", "error-login");
+            btn.classList.remove("loading");
+            btn.disabled = false;
+          }
+        } catch (err) {
+          showError("Impossible de joindre le serveur", "error-login");
+          btn.classList.remove("loading");
+          btn.disabled = false;
+        }
+      }
+
+      // ── ✅ REGISTER HANDLER — vrai appel Flask ──
+      async function handleRegister() {
+        showError("", "error-register");
+        const prenom = document.getElementById("reg-prenom").value.trim();
+        const nom = document.getElementById("reg-nom").value.trim();
+        const email = document.getElementById("reg-email").value.trim();
+        const pw = document.getElementById("reg-pw").value;
+        const pw2 = document.getElementById("reg-pw2").value;
+        const terms = document.getElementById("terms").checked;
+        const btn = document.getElementById("btn-register");
+
+        if (!prenom || !nom || !email || !pw || !pw2) {
+          showError("Veuillez remplir tous les champs", "error-register");
+          return;
+        }
+        if (pw.length < 8) {
+          showError(
+            "Mot de passe trop court (8 caractères minimum)",
+            "error-register",
+          );
+          return;
+        }
+        if (pw !== pw2) {
+          showError("Les mots de passe ne correspondent pas", "error-register");
+          return;
+        }
+        if (!terms) {
+          showError(
+            "Veuillez accepter les conditions d'utilisation",
+            "error-register",
+          );
+          return;
+        }
+
+        btn.classList.add("loading");
+        btn.disabled = true;
+
+        try {
+          const res = await fetch("/api/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify({
+              username: `${prenom} ${nom}`,
+              email,
+              password: pw,
+            }),
+          });
+
+          const data = await res.json();
+
+          if (res.ok) {
+            btn.querySelector(".btn-text").textContent = "Compte créé ✓";
+            setTimeout(() => {
+              window.location.href = "/chat";
+            }, 600);
+          } else if (res.status === 409) {
+            showError("Cet email est déjà utilisé", "error-register");
+            btn.classList.remove("loading");
+            btn.disabled = false;
+          } else {
+            showError(
+              data.error || "Erreur lors de l'inscription",
+              "error-register",
+            );
+            btn.classList.remove("loading");
+            btn.disabled = false;
+          }
+        } catch (err) {
+          showError("Impossible de joindre le serveur", "error-register");
+          btn.classList.remove("loading");
+          btn.disabled = false;
+        }
+      }
+
+      // ── ENTER KEY ──
+      document.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter") return;
+        const active = document.querySelector(".form-panel.active").id;
+        if (active === "panel-login") handleLogin();
+        else handleRegister();
+      });
+    </script>
+  </body>
+</html>
