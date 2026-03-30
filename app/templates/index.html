@@ -95,18 +95,23 @@
         top: 0;
         inset-x: 0;
         z-index: 150;
-        padding: 24px 60px;
+        padding: 20px 60px;
         display: flex;
         align-items: center;
         justify-content: space-between;
         transition: all 0.4s;
-        border-bottom: 1px solid transparent;
+        border-bottom: 1px solid rgba(201, 168, 76, 0.08);
+        background: rgba(26, 26, 46, 0.7);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
       }
       nav.scrolled {
-        background: rgba(26, 26, 46, 0.93);
-        backdrop-filter: blur(20px);
-        padding: 16px 60px;
-        border-bottom-color: rgba(201, 168, 76, 0.12);
+        background: rgba(26, 26, 46, 0.96);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        padding: 14px 60px;
+        border-bottom-color: rgba(201, 168, 76, 0.15);
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
       }
       .nav-logo {
         font-family: var(--serif);
@@ -166,9 +171,11 @@
         color: var(--ink);
       }
       .nav-actions {
-        display: flex;
+        display: flex !important;
         align-items: center;
         gap: 12px;
+        margin-left: auto;
+        flex-shrink: 0;
       }
       .nav-login {
         font-size: 0.78rem;
@@ -1310,8 +1317,7 @@
         nav {
           padding: 14px 20px;
         }
-        .nav-links,
-        .nav-cta {
+        .nav-links {
           display: none;
         }
         section {
@@ -1375,7 +1381,7 @@
           </svg>
           Connexion
         </a>
-        <a href="/login" class="nav-cta">Lancer le Chat →</a>
+        <a href="/chat" class="nav-cta">Lancer le Chat →</a>
       </div>
     </nav>
 
@@ -1486,9 +1492,7 @@
               src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=500&auto=format&fit=crop&q=80"
               alt="Architecture cloud"
             />
-            <div class="about-img-ov">
-              <button class="about-img-btn">Notre Portfolio →</button>
-            </div>
+            <div class="about-img-ov"></div>
           </div>
           <div class="about-frame"></div>
           <div class="about-f1"></div>
