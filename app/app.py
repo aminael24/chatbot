@@ -1,36 +1,33 @@
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-from flask_session import Session                  # ← AJOUTÉ
+from flask_session import Session
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 from functools import wraps
 import requests
-import bcrypt                                      # ← AJOUTÉ
+import bcrypt
 import os
 import time
 from datetime import timedelta
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True)              # supports_credentials pour les cookies
+CORS(app, supports_credentials=True)
 
 # ─────────────────────────────────────────────────────────────
-#  CONFIG SESSION (flask-session stocke côté serveur)
+#  CONFIG SESSION
 # ─────────────────────────────────────────────────────────────
-# "filesystem" = les sessions sont des fichiers dans /tmp/flask_sessions
-# → le cookie du navigateur contient juste un ID, pas les données
 app.secret_key = os.getenv('SECRET_KEY', 'cloudbot-ginf2-ensa-tanger-2026')
 app.config['SESSION_TYPE']               = 'filesystem'
 app.config['SESSION_FILE_DIR']           = '/tmp/flask_sessions'
 app.config['SESSION_PERMANENT']          = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
-app.config['SESSION_COOKIE_HTTPONLY']    = True    # JS ne peut pas lire le cookie
-app.config['SESSION_COOKIE_SAMESITE']   = 'Lax'   # protection CSRF basique
-# app.config['SESSION_COOKIE_SECURE']   = True     # activer si HTTPS
+app.config['SESSION_COOKIE_HTTPONLY']    = True
+app.config['SESSION_COOKIE_SAMESITE']   = 'Lax'
 
 Session(app)
 
 # ─────────────────────────────────────────────────────────────
-#  CONFIG MYSQL (identique à ton code)
+#  CONFIG MYSQL
 # ─────────────────────────────────────────────────────────────
 MYSQL_USER     = os.getenv('MYSQL_USER', 'chatbot')
 MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD', 'chatbot123')
@@ -54,23 +51,17 @@ OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'tinyllama')
 db = SQLAlchemy(app)
 
 # ─────────────────────────────────────────────────────────────
-#  PROMETHEUS METRICS (identique + login ajouté)
+#  PROMETHEUS METRICS
 # ─────────────────────────────────────────────────────────────
 REQUEST_COUNT   = Counter('chatbot_requests_total', 'Total chat requests', ['status'])
 REQUEST_LATENCY = Histogram('chatbot_request_duration_seconds', 'Request latency')
 TOKEN_COUNT     = Counter('chatbot_tokens_total', 'Total tokens generated')
-LOGIN_COUNT     = Counter('chatbot_login_total', 'Login attempts', ['status'])  # ← AJOUTÉ
+LOGIN_COUNT     = Counter('chatbot_login_total', 'Login attempts', ['status'])
 
 # ─────────────────────────────────────────────────────────────
-#  MODÈLES SQLAlchemy
+#  MODÈLES
 # ─────────────────────────────────────────────────────────────
-
 class User(db.Model):
-    """
-    Table users — créée automatiquement par db.create_all()
-    Le mot de passe n'est JAMAIS stocké en clair.
-    Seulement le hash bcrypt (60 caractères).
-    """
     __tablename__ = 'users'
 
     id            = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -80,19 +71,16 @@ class User(db.Model):
     created_at    = db.Column(db.DateTime, server_default=db.func.now())
     last_login    = db.Column(db.DateTime, nullable=True)
 
-    # Un user a plusieurs conversations
     conversations = db.relationship('Conversation', backref='user',
                                     lazy=True, cascade='all, delete-orphan')
 
     def set_password(self, password: str):
-        """Hash + stocke le mot de passe avec bcrypt."""
         self.password_hash = bcrypt.hashpw(
             password.encode('utf-8'),
             bcrypt.gensalt()
         ).decode('utf-8')
 
     def check_password(self, password: str) -> bool:
-        """Vérifie si le mot de passe correspond au hash stocké."""
         return bcrypt.checkpw(
             password.encode('utf-8'),
             self.password_hash.encode('utf-8')
@@ -100,19 +88,19 @@ class User(db.Model):
 
 
 class Conversation(db.Model):
-    """Table conversations — user_id ajouté pour lier à l'utilisateur."""
     __tablename__ = 'conversations'
 
     id         = db.Column(db.Integer, primary_key=True, autoincrement=True)
     session_id = db.Column(db.String(64), nullable=False, index=True)
+    title      = db.Column(db.String(100), nullable=True)   # ← titre de la conversation
     user_id    = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
     messages   = db.relationship('Message', backref='conversation',
                                  lazy=True, cascade='all, delete-orphan')
 
 
 class Message(db.Model):
-    """Table messages — identique, rien ne change."""
     __tablename__ = 'messages'
 
     id              = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -126,21 +114,6 @@ class Message(db.Model):
 #  DÉCORATEUR login_required
 # ─────────────────────────────────────────────────────────────
 def login_required(f):
-    """
-    Protège une route.
-
-    Comment ça marche :
-      1. Le navigateur envoie le cookie de session à chaque requête
-      2. Flask lit le cookie → trouve le fichier session → lit user_id
-      3. Si user_id présent → laisse passer
-      4. Sinon → redirige vers /login (ou retourne 401 pour les requêtes AJAX)
-
-    Utilisation :
-        @app.route('/chat')
-        @login_required
-        def chat_page():
-            ...
-    """
     @wraps(f)
     def decorated(*args, **kwargs):
         if 'user_id' not in session:
@@ -176,24 +149,10 @@ def logout():
 
 
 # ─────────────────────────────────────────────────────────────
-#  API AUTH — INSCRIPTION  POST /api/auth/register
+#  API AUTH — INSCRIPTION
 # ─────────────────────────────────────────────────────────────
 @app.route('/api/auth/register', methods=['POST'])
 def register():
-    """
-    Flux :
-      1. Reçoit { username, email, password }
-      2. Valide les champs
-      3. Vérifie que l'email n'existe pas déjà
-      4. Hash le mot de passe avec bcrypt
-      5. Insère en base + crée la session (auto-login)
-      6. Retourne 201
-
-    Codes :
-      201 → succès
-      400 → champ manquant / mdp trop court / email invalide
-      409 → email déjà utilisé
-    """
     data = request.get_json()
 
     username = (data.get('username') or '').strip()
@@ -206,16 +165,14 @@ def register():
         return jsonify({'error': 'Mot de passe trop court (8 caractères minimum)'}), 400
     if '@' not in email:
         return jsonify({'error': 'Email invalide'}), 400
-
     if User.query.filter_by(email=email).first():
         return jsonify({'error': 'Cet email est déjà utilisé'}), 409
 
     user = User(username=username, email=email)
-    user.set_password(password)          # bcrypt ici
+    user.set_password(password)
     db.session.add(user)
     db.session.commit()
 
-    # Auto-login après inscription
     session.permanent   = True
     session['user_id']  = user.id
     session['username'] = user.username
@@ -226,25 +183,10 @@ def register():
 
 
 # ─────────────────────────────────────────────────────────────
-#  API AUTH — CONNEXION  POST /api/auth/login
+#  API AUTH — CONNEXION
 # ─────────────────────────────────────────────────────────────
 @app.route('/api/auth/login', methods=['POST'])
 def login():
-    """
-    Flux :
-      1. Reçoit { email, password, remember }
-      2. Cherche l'utilisateur par email
-      3. Compare le mot de passe avec bcrypt.checkpw()
-      4. Si OK → écrit user_id dans la session Flask
-         → Flask envoie Set-Cookie: session=<id> au navigateur
-         → Le navigateur le stocke et le renverra à chaque requête
-      5. @login_required lira ce cookie pour identifier l'utilisateur
-
-    Codes :
-      200 → succès, session créée
-      400 → champs manquants
-      401 → email ou mot de passe incorrect
-    """
     data = request.get_json()
 
     email    = (data.get('email')    or '').strip().lower()
@@ -256,9 +198,8 @@ def login():
 
     user = User.query.filter_by(email=email).first()
 
-    # Anti-timing attack : on compare toujours, même si user n'existe pas
-    dummy = '$2b$12$invalidhashtopreventtimingattackxxxxxxxxxxxxxxxxxxxxxxx'
-    stored = user.password_hash if user else dummy
+    dummy       = '$2b$12$invalidhashtopreventtimingattackxxxxxxxxxxxxxxxxxxxxxxx'
+    stored      = user.password_hash if user else dummy
     password_ok = bcrypt.checkpw(password.encode('utf-8'), stored.encode('utf-8'))
 
     if not user or not password_ok:
@@ -278,11 +219,10 @@ def login():
 
 
 # ─────────────────────────────────────────────────────────────
-#  API AUTH — QUI SUIS-JE  GET /api/auth/me
+#  API AUTH — ME + LOGOUT
 # ─────────────────────────────────────────────────────────────
 @app.route('/api/auth/me', methods=['GET'])
 def me():
-    """Retourne l'utilisateur connecté. Le frontend l'appelle au chargement."""
     if 'user_id' not in session:
         return jsonify({'error': 'Non authentifié'}), 401
     return jsonify({
@@ -291,10 +231,6 @@ def me():
         'email':    session['email'],
     }), 200
 
-
-# ─────────────────────────────────────────────────────────────
-#  API AUTH — DÉCONNEXION  POST /api/auth/logout
-# ─────────────────────────────────────────────────────────────
 @app.route('/api/auth/logout', methods=['POST'])
 def api_logout():
     session.clear()
@@ -302,12 +238,67 @@ def api_logout():
 
 
 # ─────────────────────────────────────────────────────────────
-#  API CHAT  POST /api/chat  (protégée — identique + user_id)
+#  API SESSIONS — liste toutes les conversations de l'utilisateur
+# ─────────────────────────────────────────────────────────────
+@app.route('/api/sessions', methods=['GET'])
+@login_required
+def get_sessions():
+    user_id = session['user_id']
+    convs = (
+        Conversation.query
+        .filter_by(user_id=user_id)
+        .order_by(Conversation.updated_at.desc())
+        .all()
+    )
+    result = []
+    for c in convs:
+        # Titre = titre sauvegardé OU premier message utilisateur
+        title = c.title
+        if not title:
+            first_msg = (
+                Message.query
+                .filter_by(conversation_id=c.id, role='user')
+                .order_by(Message.id)
+                .first()
+            )
+            title = first_msg.content[:50] if first_msg else 'Nouvelle conversation'
+
+        result.append({
+            'id':         c.session_id,
+            'title':      title,
+            'created_at': c.created_at.isoformat() if c.created_at else None,
+            'updated_at': c.updated_at.isoformat() if c.updated_at else None,
+        })
+
+    return jsonify({'sessions': result})
+
+
+# ─────────────────────────────────────────────────────────────
+#  API SESSIONS — mettre à jour le titre d'une conversation
+# ─────────────────────────────────────────────────────────────
+@app.route('/api/sessions/<session_id>/title', methods=['PATCH'])
+@login_required
+def update_session_title(session_id):
+    user_id = session['user_id']
+    data    = request.get_json()
+    title   = (data.get('title') or '').strip()[:100]
+
+    conv = Conversation.query.filter_by(session_id=session_id, user_id=user_id).first()
+    if not conv:
+        return jsonify({'error': 'Conversation introuvable'}), 404
+
+    conv.title = title
+    db.session.commit()
+    return jsonify({'status': 'ok', 'title': title})
+
+
+# ─────────────────────────────────────────────────────────────
+#  API CHAT
 # ─────────────────────────────────────────────────────────────
 @app.route('/api/chat', methods=['POST'])
 @login_required
 def chat():
-    start = time.time()
+    start        = time.time()
     data         = request.get_json()
     session_id   = data.get('session_id', 'default')
     user_message = data.get('message', '').strip()
@@ -323,11 +314,25 @@ def chat():
         db.session.add(conv)
         db.session.commit()
 
+    # Sauvegarder le titre automatiquement sur le 1er message
+    if not conv.title:
+        conv.title = user_message[:50]
+
     db.session.add(Message(conversation_id=conv.id, role='user', content=user_message))
     db.session.commit()
 
     history  = Message.query.filter_by(conversation_id=conv.id).order_by(Message.id).all()
-    messages = [{'role': m.role, 'content': m.content} for m in history]
+    messages = [
+        {
+            'role': 'system',
+            'content': (
+                'Tu es CloudBot, un assistant IA intelligent et précis. '
+                'Réponds toujours en français, de manière claire et concise. '
+                'Ne réponds qu\'à ce qui est demandé. '
+                'Utilise "vous" pour t\'adresser à l\'utilisateur.'
+            )
+        }
+    ] + [{'role': m.role, 'content': m.content} for m in history]
 
     try:
         resp = requests.post(
@@ -344,17 +349,23 @@ def chat():
         return jsonify({'error': f'Ollama error: {str(e)}'}), 503
 
     db.session.add(Message(conversation_id=conv.id, role='assistant', content=assistant_reply))
+
+    # Mettre à jour updated_at pour trier par activité récente
+    conv.updated_at = db.func.now()
     db.session.commit()
 
     REQUEST_COUNT.labels(status='success').inc()
     REQUEST_LATENCY.observe(time.time() - start)
 
-    return jsonify({'reply': assistant_reply, 'session_id': session_id,
-                    'conversation_id': conv.id})
+    return jsonify({
+        'reply':           assistant_reply,
+        'session_id':      session_id,
+        'conversation_id': conv.id,
+    })
 
 
 # ─────────────────────────────────────────────────────────────
-#  API HISTORIQUE + RESET (protégées — filtrées par user_id)
+#  API HISTORIQUE + RESET
 # ─────────────────────────────────────────────────────────────
 @app.route('/api/history/<session_id>', methods=['GET'])
 @login_required
@@ -379,7 +390,7 @@ def reset_conversation(session_id):
 
 
 # ─────────────────────────────────────────────────────────────
-#  HEALTH + METRICS (identiques)
+#  HEALTH + METRICS
 # ─────────────────────────────────────────────────────────────
 @app.route('/metrics')
 def metrics():
@@ -388,9 +399,9 @@ def metrics():
 @app.route('/health')
 def health():
     return jsonify({
-        'status': 'ok',
-        'model':  OLLAMA_MODEL,
-        'db':     'mysql',
+        'status':        'ok',
+        'model':         OLLAMA_MODEL,
+        'db':            'mysql',
         'authenticated': 'user_id' in session,
     })
 
@@ -401,5 +412,5 @@ def health():
 if __name__ == '__main__':
     os.makedirs('/tmp/flask_sessions', exist_ok=True)
     with app.app_context():
-        db.create_all()    # crée users + conversations + messages si absentes
+        db.create_all()
     app.run(host='0.0.0.0', port=5000, debug=False)
