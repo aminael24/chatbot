@@ -89,27 +89,35 @@
         width: 0;
       }
 
-      /* NAV */
+      /* ============================================= */
+      /* NAV — Correction largeur et superposition */
+      /* ============================================= */
       nav {
         position: fixed;
         top: 0;
-        inset-x: 0;
+        left: 0;
+        width: 100%;
         z-index: 150;
-        padding: 20px 60px;
+        height: 72px;
+        padding: 0 60px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        transition: all 0.4s;
+        transition:
+          height 0.3s ease,
+          background 0.3s ease,
+          box-shadow 0.3s ease,
+          border-color 0.3s ease;
         border-bottom: 1px solid rgba(201, 168, 76, 0.08);
         background: rgba(26, 26, 46, 0.7);
         backdrop-filter: blur(18px);
         -webkit-backdrop-filter: blur(18px);
       }
       nav.scrolled {
+        height: 62px;
         background: rgba(26, 26, 46, 0.96);
         backdrop-filter: blur(24px);
         -webkit-backdrop-filter: blur(24px);
-        padding: 14px 60px;
         border-bottom-color: rgba(201, 168, 76, 0.15);
         box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
       }
@@ -119,6 +127,10 @@
         font-weight: 700;
         color: var(--gold);
         text-decoration: none;
+        line-height: 1;
+        letter-spacing: 0.01em;
+        display: inline-flex;
+        align-items: center;
       }
       .nav-logo span {
         color: var(--cream);
@@ -126,27 +138,43 @@
       }
       .nav-links {
         display: flex;
-        gap: 36px;
+        justify-content: center;
+        align-items: center;
+        gap: 40px;
         list-style: none;
+        margin: 0;
+        padding: 0;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      .nav-links li {
+        display: flex;
+        align-items: center;
       }
       .nav-links a {
-        font-size: 0.8rem;
-        letter-spacing: 0.12em;
+        font-family: var(--sans);
+        font-size: 0.78rem;
+        font-weight: 500;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
-        color: rgba(245, 240, 232, 0.55);
+        color: rgba(245, 240, 232, 0.6);
         text-decoration: none;
-        transition: color 0.2s;
+        transition: color 0.25s ease;
         position: relative;
+        padding: 6px 0;
+        line-height: 1;
       }
       .nav-links a::after {
         content: "";
         position: absolute;
-        bottom: -4px;
-        left: 0;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
         width: 0;
         height: 1px;
         background: var(--gold);
-        transition: width 0.3s;
+        transition: width 0.3s ease;
       }
       .nav-links a:hover {
         color: var(--cream);
@@ -154,44 +182,35 @@
       .nav-links a:hover::after {
         width: 100%;
       }
-      .nav-cta {
-        font-size: 0.78rem;
-        font-weight: 500;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        padding: 10px 24px;
-        border: 1px solid var(--gold);
-        color: var(--gold);
-        border-radius: 2px;
-        text-decoration: none;
-        transition: all 0.2s;
-      }
-      .nav-cta:hover {
-        background: var(--gold);
-        color: var(--ink);
-      }
       .nav-actions {
-        display: flex !important;
+        display: flex;
         align-items: center;
-        gap: 12px;
-        margin-left: auto;
+        gap: 14px;
         flex-shrink: 0;
       }
       .nav-login {
-        font-size: 0.78rem;
+        font-family: var(--sans);
+        font-size: 0.76rem;
         font-weight: 500;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
-        padding: 10px 22px;
+        height: 38px;
+        padding: 0 20px;
         background: rgba(201, 168, 76, 0.1);
         border: 1px solid rgba(201, 168, 76, 0.3);
         color: var(--cream);
         border-radius: 2px;
         text-decoration: none;
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        gap: 7px;
-        transition: all 0.2s;
+        justify-content: center;
+        gap: 8px;
+        line-height: 1;
+        transition:
+          background 0.2s ease,
+          border-color 0.2s ease,
+          color 0.2s ease;
+        white-space: nowrap;
       }
       .nav-login:hover {
         background: rgba(201, 168, 76, 0.2);
@@ -201,7 +220,34 @@
       .nav-login svg {
         width: 13px;
         height: 13px;
-        opacity: 0.75;
+        opacity: 0.8;
+        flex-shrink: 0;
+      }
+      .nav-cta {
+        font-family: var(--sans);
+        font-size: 0.76rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        height: 38px;
+        padding: 0 22px;
+        border: 1px solid var(--gold);
+        color: var(--gold);
+        background: transparent;
+        border-radius: 2px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        transition:
+          background 0.2s ease,
+          color 0.2s ease;
+        white-space: nowrap;
+      }
+      .nav-cta:hover {
+        background: var(--gold);
+        color: var(--ink);
       }
 
       /* HERO */
@@ -211,6 +257,7 @@
         display: flex;
         align-items: center;
         overflow: hidden;
+        padding-top: 72px; /* Pour éviter que le contenu passe sous la nav fixe */
       }
       #hero-canvas {
         position: absolute;
@@ -229,7 +276,6 @@
         );
       }
 
-      /* HERO LAYOUT: left content + right robot */
       .hero-inner {
         position: relative;
         z-index: 2;
@@ -244,6 +290,7 @@
       .hero-content {
         max-width: 580px;
         flex-shrink: 0;
+        margin-top: -20px;
       }
       .hero-kicker {
         font-size: 0.7rem;
@@ -294,7 +341,6 @@
         animation: fadeUp 0.7s 0.7s forwards;
       }
 
-      /* HERO BUTTONS — spaced vertically */
       .hero-btns {
         display: flex;
         flex-direction: column;
@@ -348,7 +394,6 @@
         color: var(--gold);
       }
 
-      /* HERO ROBOT (right side) */
       .hero-robot {
         flex: 1;
         min-width: 0;
@@ -365,7 +410,6 @@
         display: block;
         --spline-viewer-logo: none;
       }
-      /* hide the spline watermark */
       .hero-robot spline-viewer::part(logo) {
         display: none !important;
       }
@@ -407,13 +451,6 @@
         to {
           left: 200%;
         }
-      }
-      .hero-stats {
-        position: absolute;
-        right: 60px;
-        bottom: 80px;
-        z-index: 2;
-        display: none; /* hidden — robot takes this space now */
       }
       .ambient-orb {
         position: absolute;
@@ -1280,7 +1317,12 @@
       }
 
       @media (max-width: 1024px) {
-        nav,
+        nav {
+          padding: 0 32px;
+        }
+        .nav-links {
+          gap: 28px;
+        }
         section,
         footer {
           padding-left: 32px;
@@ -1315,10 +1357,27 @@
       }
       @media (max-width: 640px) {
         nav {
-          padding: 14px 20px;
+          height: 62px;
+          padding: 0 20px;
+        }
+        nav.scrolled {
+          height: 56px;
         }
         .nav-links {
           display: none;
+        }
+        .nav-actions {
+          gap: 10px;
+        }
+        .nav-login {
+          height: 34px;
+          padding: 0 14px;
+          font-size: 0.7rem;
+        }
+        .nav-cta {
+          height: 34px;
+          padding: 0 16px;
+          font-size: 0.7rem;
         }
         section {
           padding: 70px 20px;
@@ -1392,13 +1451,8 @@
       <div class="ambient-orb orb-a"></div>
       <div class="ambient-orb orb-b"></div>
 
-      <!-- Two-column hero layout -->
       <div class="hero-inner">
-        <!-- LEFT: text content -->
         <div class="hero-content">
-          <div class="hero-kicker">
-            ENSA Tanger · GINF2 · Projet 3 · Cloud Computing
-          </div>
           <h1 class="hero-h1">
             L'Intelligence<br />
             <em>Artificielle</em>
@@ -1409,18 +1463,11 @@
             Compose, monitoré en temps réel — une infrastructure cloud complète,
             open source et reproductible en une commande.
           </p>
-          <!-- BUTTONS: vertical stack with spacing -->
           <div class="hero-btns">
             <a href="/chat" class="btn-gold">Discuter maintenant →</a>
-            <a href="#about" class="btn-outline">À propos</a>
-            <a href="#architecture" class="btn-outline"
-              >Explorer l'architecture</a
-            >
-            <a href="#avis" class="btn-outline">Avis clients</a>
           </div>
         </div>
 
-        <!-- RIGHT: Spline 3D Robot -->
         <div class="hero-robot">
           <spline-viewer
             url="https://prod.spline.design/PyzDhpQ9E5f1E3MT/scene.splinecode"
@@ -1779,7 +1826,7 @@
       </div>
     </section>
 
-    <!-- TEAM -->
+      <!-- TEAM -->
     <section id="team">
       <div class="team-intro">
         <div class="sec-kicker reveal">Équipe</div>
@@ -1857,6 +1904,8 @@
         </div>
       </div>
     </section>
+
+
 
     <!-- AVIS -->
     <section id="avis">

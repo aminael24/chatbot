@@ -145,7 +145,7 @@ def chat_page():
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('login_page'))
+    return render_template('index.html')
 
 
 # ─────────────────────────────────────────────────────────────
